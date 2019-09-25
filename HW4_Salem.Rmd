@@ -1,0 +1,130 @@
+---
+title: "HW4_Salem"
+author: "Mohamed Salem"
+date: "September 24, 2019"
+output: pdf_document
+geometry: margin=1in
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts=list(width.cutoff=60),tidy=TRUE,fig.height = 4.4, fig.width = 6, fig.align = 'center')
+```
+
+```{r , echo=F,results='hide', collapse=TRUE, include=FALSE}
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(formatR))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(lintr))
+```
+
+I concluded that there is value in adopting a specific style. Personally, given my current coding style, I've resolved to evolve my style to follow the conventions of using BigCamelCase and not using the attach function.
+
+
+```{r , echo=T, collapse=TRUE, include=FALSE}
+require(lintr)
+lint(filename = "D:/Vtech/Statistical Programming/HW3_Salem.Rmd")
+```
+
+The main recommendation I received was to add spaces between my operators. I was also pointed towards not having my code exceed 80 characters per line.
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+
+#Read and import the object
+data<-readRDS(file = "D:/Vtech/Statistical Programming/HW4_data.rds")
+
+AnalyzeData<-function(x) {
+  SumData<-x
+  names(SumData)<-c("Observer","Var_1","Var_2")
+  SumData<-SumData %>%
+    group_by(Observer)%>%
+    summarise(
+      dev1_mean=mean(Var_1,na.rm = T),
+      dev2_mean=mean(Var_2,na.rm = T),
+      dev1_sd=sd(Var_1,na.rm = T),
+      dev2_sd=sd(Var_2,na.rm = T),
+      dev_corr=cor(Var_1,Var_2, method = "pearson")
+    ) 
+  
+  SumDataMelted<-data.frame(matrix(rep(c(1,2), each = length(SumData$dev1_mean),nrow = length(SumData$dev1_mean), ncol=1)))
+  names(SumDataMelted)<-c("Variable")
+  RowMeltmean<-rbind(data.frame(means=SumData$dev1_mean),data.frame(means=SumData$dev2_mean))
+  RowMeltsd<-rbind(data.frame(means=SumData$dev1_sd),data.frame(means=SumData$dev2_sd))
+  SumDataMelted<-data.frame(cbind(as.factor(SumDataMelted$Variable),RowMeltmean$means,RowMeltsd))
+  names(SumDataMelted)<-c("Variable","MeanValues","SdValues")
+  SumDataMelted$Variable<-as.factor(SumDataMelted$Variable)
+  
+  bxplt <- ggplot(data = SumDataMelted, aes(x=Variable, y=MeanValues)) +
+                geom_boxplot()
+  
+  plotB <- bxplt + facet_wrap( ~ Variable, scales="free")
+  
+  vlnplot <- ggplot(data = SumDataMelted, aes(x=Variable, y=SdValues)) + 
+                geom_violin(trim = FALSE)
+  
+  plotA <- vlnplot + facet_wrap( ~ Variable, scales="free")
+  
+  return(list(SumData, plotB, plotA))
+}
+```
+\newpage
+```{r echo=TRUE,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+AnalyzeData(data)
+```
+\newpage
+```{r echo=TRUE,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+RamenSum <- function(a,b,f,eps=1E-6, N=10000) {
+  i = 1
+  h = 1
+  SliceWidths = numeric(N)
+  SliceWidths[1] = h
+  IntrmSoln = numeric(N)
+  RSum = 0
+  cdf = integrate(f, 0, 1)
+  while (abs(RSum - cdf$value) > eps) {
+    Pts = seq(a,b, by = h)
+    NumPts = length(Pts)
+    midpts = 0.5*(Pts[2:NumPts]+Pts[1:(NumPts-1)])
+    RSum = sum(h*f(midpts))
+    h = 0.5*h
+    i=i+1
+    SliceWidths[i] = h
+  }
+  return(list(paste("Solution = ", RSum), paste("Soln Slice Width = ",h), paste("True Integral = ",cdf$value),SliceWidths[1:(i-1)]))
+}
+```
+
+```{r echo=TRUE,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+f <- function(x) {exp(-(x^2)/2)}
+RamenSum(0,1,f)
+```
+\newpage
+```{r echo=TRUE,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+NewtonRhapson <- function(f, eps=1E-3, x0 = 1, N=10000) {
+  h = 1e-3
+  i = 1
+  x1 = x0
+  xstatic = x0
+  p = numeric(N)
+  while (i<=N) {
+    derv = (f(x0 + h)-f(x0))/h
+    x1 = (x0 - (f(x0)/derv))
+    p[i] = x1
+    i = i+1
+    if (abs(x1 - x0) < eps) break
+    x0 = x1
+  }
+  
+  m<-seq(-50,50,length=10000)
+  RootGrph<-plot(p, f(p), type='l', lwd=1.5, main=expression(f(Newton-Rhapson),xlim = c(-9,9), ylim = c(-5,5), ylab = "f(x)"))
+  abline(h=0)
+  FnGrph<-plot(m, f(m), type='l', lwd=1.5, main=expression(f(Domain)),xlim = c(-9,9), ylim = c(-5,5), ylab = "f(x)")
+  abline(h=0)
+  
+  return(list(paste("Solution = ", x1), paste("tolerance = ",eps),paste("Initial Guess = ",xstatic),paste("Initial Interval = ",xstatic, " to ",xstatic+h),Solution_Iterations = p[1:(i-1)],RootGrph, FnGrph))
+}
+```
+
+```{r echo=TRUE,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+f <- function(x) {3^x - sin(x) + cos(5*x)}
+NewtonRhapson(f)
+```
