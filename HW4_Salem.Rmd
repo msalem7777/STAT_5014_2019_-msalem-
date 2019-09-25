@@ -32,6 +32,7 @@ The main recommendation I received was to add spaces between my operators. I was
 #Read and import the object
 data<-readRDS(file = "D:/Vtech/Statistical Programming/HW4_data.rds")
 
+#A function that takes the dataset and performs a number of prespecified exploratory analyses on them
 AnalyzeData<-function(x) {
   SumData<-x
   names(SumData)<-c("Observer","Var_1","Var_2")
@@ -68,10 +69,12 @@ AnalyzeData<-function(x) {
 ```
 \newpage
 ```{r echo=TRUE,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#Testing out our function
 AnalyzeData(data)
 ```
 \newpage
 ```{r echo=TRUE,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#A function to implement the Riemann sum method of finding areas with the arguments a, b, f, eps, N, representing the starting point of a continuous domain, the ending point of a continuous domain, our function, our tolerance level, and maximum number of iterations, respectively. 
 RamenSum <- function(a,b,f,eps=1E-6, N=10000) {
   i = 1
   h = 1
@@ -94,11 +97,15 @@ RamenSum <- function(a,b,f,eps=1E-6, N=10000) {
 ```
 
 ```{r echo=TRUE,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#Testing out our function
 f <- function(x) {exp(-(x^2)/2)}
 RamenSum(0,1,f)
 ```
 \newpage
 ```{r echo=TRUE,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#A function to implement the Newton-Rhapson method of finding roots with the arguments f, eps, x0, N, representing our function, our tolerance level, our initial guess, and maximum number of iterations, respectively. Function adapted from code by Yin Zhao, available at: https://www.academia.edu/7031789/Newton-Raphson_Method_in_R
+#Adapted on 9/24/2019
+
 NewtonRhapson <- function(f, eps=1E-3, x0 = 1, N=10000) {
   h = 1e-3
   i = 1
@@ -125,6 +132,7 @@ NewtonRhapson <- function(f, eps=1E-3, x0 = 1, N=10000) {
 ```
 
 ```{r echo=TRUE,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#Testing Out Our Function
 f <- function(x) {3^x - sin(x) + cos(5*x)}
 NewtonRhapson(f)
 ```
