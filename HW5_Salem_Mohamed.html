@@ -215,14 +215,14 @@ system.time({
     rm(Sy)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##    7.72    0.11    7.83</code></pre>
+##    7.99    0.18    8.18</code></pre>
 <pre class="r"><code># Using Matrix algebra to achieve the same result
 system.time({
     y_vec &lt;- y - Ey
     SSy_mat &lt;- t(y_vec) %*% y_vec
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##    0.94    0.38    1.32</code></pre>
+##    0.97    0.39    1.35</code></pre>
 <p>Problem 3</p>
 <pre class="r"><code># Seed setting ad generating data
 set.seed(1256)
@@ -265,12 +265,12 @@ system.time({
     b_solving &lt;- solve(t(X) %*% X, t(X) %*% Y)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##    0.00    0.00    0.07</code></pre>
+##    0.01    0.00    0.03</code></pre>
 <pre class="r"><code>system.time({
     b_inverting &lt;- solve(t(X) %*% X) %*% t(X) %*% Y
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##    0.02    0.00    0.02</code></pre>
+##    0.01    0.00    0.01</code></pre>
 <pre class="r"><code>print(b_solving)</code></pre>
 <pre><code>##         [,1]
 ## [1,] 5.20978</code></pre>
@@ -285,8 +285,10 @@ C &lt;- kronecker(diag(1600), R)  # C is a 16000 * 16000 block diagonal matrix
 id &lt;- sample(1:16000, size = 932, replace = F)
 C &lt;- C[, -id]
 A &lt;- C[id, ]  # matrix of dimension 932 * 15068
+ASize_old &lt;- object.size(A)
 A &lt;- as(A, &quot;sparseMatrix&quot;)
 B &lt;- C[-id, ]  # matrix of dimension 15068 * 15068
+BSize_old &lt;- object.size(B)
 rm(C)  #save some memory space
 B &lt;- as(B, &quot;sparseMatrix&quot;)
 system.time({
@@ -297,11 +299,14 @@ system.time({
     y = p - A %*% Bi %*% (q - r)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##    2.00    0.00    2.11</code></pre>
+##    2.04    0.01   11.51</code></pre>
 <pre class="r"><code>ASize &lt;- object.size(A)
 BSize &lt;- object.size(B)
 print(paste(&quot;A size:&quot;, ASize, &quot;bytes&quot;, &quot;|  B size:&quot;, BSize, &quot;bytes&quot;))</code></pre>
 <pre><code>## [1] &quot;A size: 156504 bytes |  B size: 1775208 bytes&quot;</code></pre>
+<pre class="r"><code>print(paste(&quot;old A size:&quot;, ASize_old, &quot;bytes&quot;, &quot;|  old B size:&quot;, 
+    BSize_old, &quot;bytes&quot;))</code></pre>
+<pre><code>## [1] &quot;old A size: 112347224 bytes |  old B size: 1816357208 bytes&quot;</code></pre>
 
 
 
