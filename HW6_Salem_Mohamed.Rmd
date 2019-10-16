@@ -1,0 +1,189 @@
+---
+title: "HW6_Salem_Mohamed"
+author: "Mohamed Salem"
+date: "October 6, 2019"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+geometry: margin=1in
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts=list(width.cutoff=60),tidy=TRUE,fig.height = 4.4, fig.width = 6, fig.align = 'center')
+```
+
+```{r , echo=F,results='hide', collapse=TRUE, include=FALSE}
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(formatR))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(Matrix))
+```
+
+```{r echo=T, include=T}
+#My countif function
+countif.fn <- function(d,c=1) {
+    cnt = sum(d == c)
+return(cnt)
+}
+```
+
+```{r echo=T, include=T}
+#seed setting and data creation
+set.seed(12345)
+P4b_data <- matrix(rbinom(10, 1, prob = (30:40)/100), nrow = 10, ncol = 10, byrow = FALSE)
+print(P4b_data)
+```
+
+```{r echo=T, include=T}
+#applying the counting function to get proportions
+a <- P4b_data
+cndtn_mat <- matrix(sapply(a,countif.fn), nrow = length(a[,1]), ncol = length(a[1,]))
+prptns_byrow <- rowSums(cndtn_mat)/length(a[,1])
+prptns_bycol <- colSums(cndtn_mat)/length(a[1,])
+print(prptns_bycol)
+print(prptns_byrow)
+```
+```{r echo=T, include=T}
+#function to produce matrix of bernoulli trials
+binom.vec <- function(p) {
+    P4b_data_adj <- matrix(rbernoulli(10,p), nrow = 10, ncol = 1)
+    P4b_data_adj <- as.numeric(P4b_data_adj)
+return(P4b_data_adj)
+}
+```
+
+```{r echo=T, include=T}
+#computing and printing prob.s for the correct matrix
+prob_vec <- c(seq(0,1, length.out = 10))
+prob_mat <- matrix(sapply(prob_vec,binom.vec), ncol = length(a[1,]))
+print(prob_mat)
+prptns_byrow <- rowSums(prob_mat)/length(prob_mat[,1])
+prptns_bycol <- colSums(prob_mat)/length(prob_mat[1,])
+print(prptns_bycol)
+print(prptns_byrow)
+```
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#Read and import the object
+df<-readRDS(file = "D:/Vtech/Statistical Programming/HW4_data.rds")
+names(df) <- c("Observer", "x","y")
+
+#My plotting function
+scatterdat <- function(i=0) {
+  if (i %in% c(0)) {
+    ggplot(df, aes(x, y)) +
+    geom_point()
+  } else {
+    ggplot(df[df$Observer==i,], aes(x, y)) +
+    facet_wrap(~Observer) +
+    geom_point() 
+  }
+}
+
+#Plotting all data
+scatterdat()
+
+#plotting data by observer (P.S: The T-Rex is just AWESOME!)
+sapply(sort(unique(df$Observer)), scatterdat,simplify=FALSE)
+```
+
+```{r get_city_list, echo=T, include=T}
+#download the files
+library(downloader)
+download("http://www.farinspace.com/wp-content/uploads/us_cities_and_states.zip",dest="us_cities_states.zip")
+unzip("us_cities_states.zip", exdir=".")
+    
+#read in data
+library(data.table)
+states <- fread(input = "./us_cities_and_states/states.sql", skip =23,sep = "'", sep2 = ",", header = FALSE, select = c(2,4))
+cities <- fread(input = "./us_cities_and_states/cities.sql", skip = 0,sep = "'", sep2 = ",", header = FALSE, select = c(2,4))
+cities_ext <- fread(input = "./us_cities_and_states/cities_extended.sql", skip = 0,sep = "'", sep2 = ",", header = FALSE, select = c(2,4,12))
+cities_ext <- filter(cities_ext, (V4!="PR" & V4!="DC"))
+    
+#Some diagnostics to check if everything's fine
+sort(unique(cities_ext$V4))
+length(unique(cities_ext$V4))
+city_cnt <- data.frame(table(cities_ext$V4))
+print(table(cities_ext$V4))
+```
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#letter counting function
+ltr.cntr <- function(a,b) {
+  a <- as.character(a)
+  b <- as.character(b)
+  r <- which(strsplit(a, "")[[1]]==b)
+  r <- sum(r > 0)
+  return(r)
+}
+```
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#appllying the letter counting function
+letter_count <- data.frame(matrix(NA,nrow=50, ncol=27))
+states_nodc <- filter(states, V4!="DC")
+letter_count[,1] <- tolower(states_nodc[,1])
+names(letter_count) <- c("State", letters)
+vec_feed <- as.character(letters)
+state_vec <- tolower(states_nodc[,1])
+ 
+for(j in 2:27) {
+    letter_count[,j] <- apply(letter_count,1,ltr.cntr,vec_feed[j-1])
+    } 
+
+print(letter_count)
+```
+
+
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+library(fiftystater)
+data("fifty_states")
+  
+crimes <- data.frame(state = tolower(rownames(USArrests)), USArrests)
+# map_id creates the aesthetic mapping to the state name column in your data
+
+# A few matching commands to associate city counts with states 
+df <- merge(states_nodc[, c("V4", "V2")], city_cnt[, c("Var1", "Freq")], by.x = "V4", by.y = "Var1")
+df[,2] <- tolower(df$V2)
+df <- merge(crimes[, c("state","Murder","Assault","UrbanPop", "Rape" )], df[, c("V2", "Freq")], by.x = "state", by.y = "V2")
+
+p <- ggplot(df, aes(map_id = state)) + 
+# map points to the fifty_states shape data
+    geom_map(aes(fill = Freq), map = fifty_states) + 
+    expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+    coord_map() +
+    scale_x_continuous(breaks = NULL) + 
+    scale_y_continuous(breaks = NULL) +
+    labs(x = "", y = "") +
+    theme(legend.position = "bottom", panel.background = element_blank())
+    
+    p
+```
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+# finding a specified number of letter repeats
+letter_count_gt3 <- letter_count
+letter_count_gt3 <- data.frame(letter_count_gt3>=3)
+letter_count_gt3$State <- letter_count$State
+letter_count_gt3$tot <- rowSums(letter_count_gt3[,2:27])
+letter_count_gt3$tot[letter_count_gt3$tot>0] <- 1
+letter_count_gt3 <- data.frame(cbind(letter_count_gt3$State,letter_count_gt3$tot))
+
+# matching command to link states on the map to number of letter repeats
+df <- merge(crimes[, c("state","Murder","Assault","UrbanPop", "Rape" )], letter_count_gt3[, c("X1", "X2")], by.x = "state", by.y = "X1")
+
+p <- ggplot(df, aes(map_id = state)) + 
+# map points to the fifty_states shape data
+    geom_map(aes(fill = X2),color="black", map = fifty_states) + 
+    expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+    coord_map() +
+    scale_x_continuous(breaks = NULL) + 
+    scale_y_continuous(breaks = NULL) +
+    labs(x = "", y = "") +
+    scale_fill_grey() +
+    theme(legend.position = "bottom", panel.background = element_blank())
+    
+    p
+```
