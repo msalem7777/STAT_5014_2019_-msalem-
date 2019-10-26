@@ -261,9 +261,9 @@ theta <- as.matrix(c(1,2),nrow=2)
 X <- cbind(1,rep(1:10,10))
 h <- X%*%theta+rnorm(100,0,0.2)
 #need to make guesses for both Theta0 and Theta1, might as well be close
-alpha <- 0.01 # this is the step size
+alpha <- 0.0000001 # this is the step size
 m <- 100 # this is the size of h
-tolerance <- 0.001 # stopping tolerance
+tolerance <- 0.000000001 # stopping tolerance
  grdscnt <- function(k) {
     sum_mat<-matrix(NA, nrow = 1, ncol = 5)
     names(sum_mat) <- c("starting_value_1", "starting_value_2", "stopping_value_1", "stopping_value_2", "#_iterations")
