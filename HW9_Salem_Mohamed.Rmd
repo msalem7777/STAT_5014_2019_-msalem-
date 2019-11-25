@@ -1,0 +1,227 @@
+---
+title: "Statistical Packages"
+subtitle: "HW9"
+author: Mohamed Salem
+date: 
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+geometry: margin=1in
+fontsize: 10pt
+mainfont: Helvetica
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts=list(width.cutoff=60),tidy=TRUE,fig.height = 4.4, fig.width = 6, fig.align = 'center', fig.pos = "H", fig.keep = 'all', warning = FALSE)
+```
+
+```{r , echo=F,results='hide', collapse=TRUE, include=FALSE}
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(formatR))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(Matrix))
+suppressPackageStartupMessages(library(lmtest))
+suppressPackageStartupMessages(library(car))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(stargazer))
+suppressPackageStartupMessages(library(lawstat))
+suppressPackageStartupMessages(library(EnvStats))
+suppressPackageStartupMessages(library(faraway))
+suppressPackageStartupMessages(library(gridExtra))
+```
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#we begin by loading our required libraries
+library(reticulate)
+library(tensorflow)
+library(keras)
+```
+
+Due to issues and incompatibilities faced when attempting to install the latest version of Anaconda on a windows 8 machine, and incompatibilities between the latest version of Python (3.7) and Tensorflow, we have manually installed an older version of Anaconda (3.5.1) which comes with Python 3.6. We've also manually installed tensorflow through Anaconda via the pip commands: 
+
+pip install tensorflow
+conda create -n tensorflow_env tensorflow
+
+Next we load both keras and tensorflow through the set up conda environment:
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE, eval=FALSE}
+#Note, we've excluded this chunk from being evaluated to avoid running an installation every time we knit
+install_tensorflow(method = "conda", conda = "C:/ProgramData/Anaconda3/Scripts/conda.exe", envname = "tensorflow_env")
+install_keras(method = "conda", conda = "C:/ProgramData/Anaconda3/Scripts/conda.exe")
+```
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+Sys.setenv(TENSORFLOW_PYTHON="C:/ProgramData/Anaconda3/envs/tensorflow_env/python.exe")
+Sys.setenv(KERAS_PYTHON="C:/ProgramData/Anaconda3/envs/tensorflow_env/python.exe")
+tensorflow::use_condaenv("tensorflow_env")
+keras::use_condaenv("tensorflow_env")
+use_python("C:/ProgramData/Anaconda3/envs/tensorflow_env/python.exe")
+use_condaenv(conda = "C:/ProgramData/Anaconda3/Scripts/conda.exe")
+is_keras_available()
+use_condaenv(conda = "C:/ProgramData/Anaconda3/Scripts/conda.exe")
+#Finally, we check if keras is available for use
+is_keras_available()
+# and we check that Tensorflow is active and visible to our system
+reticulate::py_config()
+```
+
+We've also faced issues loading the MNIST dataset directly from keras. So, we've opted for importing the same dataset from another package as displayed below:
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+library(dslabs)
+mnist <- read_mnist()
+```
+
+Now that we have our MNIST dataset loaded and functional, we begin by fitting our neural networks:
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#Splitting the data into training and testing sets
+x_train <- mnist$train$images
+y_train <- mnist$train$labels
+x_test <- mnist$test$images
+y_test <- mnist$test$labels
+#Converting the data from 3D arrays into matrices
+x_train <- array_reshape(x_train, c(nrow(x_train), 784))
+x_test <- array_reshape(x_test, c(nrow(x_test), 784))
+#converting grayscale values into integers
+x_train <- x_train / 255
+x_test <- x_test / 255
+#Creating dummy variables for the response
+y_train <- to_categorical(y_train, 10)
+y_test <- to_categorical(y_test, 10)
+#Setting up the keras Sequential model
+model <- keras_model_sequential() 
+model %>% 
+  layer_dense(units = 256, activation = 'relu', input_shape = c(784)) %>% 
+  layer_dropout(rate = 0.4) %>% 
+  layer_dense(units = 128, activation = 'relu') %>%
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units = 10, activation = 'softmax')
+#A summary of the model
+summary(model)
+#Compiling the model with a loss function and other metrics
+model %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+#Training the model 30 times using 128 images per trial
+history <- model %>% fit(
+  x_train, y_train, 
+  epochs = 30, batch_size = 128, 
+  validation_split = 0.2
+)
+#A plot of the model's development and improvement
+plot(history)
+#Evaluating the model's performannce on the test set
+model %>% evaluate(x_test, y_test)
+#Generating predictions
+model %>% predict_classes(x_test)
+```
+
+Now that we've got our tools up and running on the MNIST dataset, we'll move on to the more interesting Fashion MNIST dataset.
+
+```{r , echo=T,tidy.opts=list(width.cutoff=65),tidy=TRUE}
+#Importing the Fashion MNIST dataset
+fashion_mnist <- dataset_fashion_mnist()
+#Splitting the data into testing and training sets
+c(train_images, train_labels) %<-% fashion_mnist$train
+c(test_images, test_labels) %<-% fashion_mnist$test
+#Creating a vector of class names
+class_names = c('T-shirt/top','Trouser', 'Pullover','Dress','Coat', 'Sandal','Shirt','Sneaker','Bag','Ankle boot')
+#Exploring the dimensions and characteristics of the data
+dim(train_images)
+dim(train_labels)
+train_labels[1:20]
+dim(test_images)
+dim(test_labels)
+#Examining a sample of the data
+image_1 <- as.data.frame(train_images[1, , ])
+colnames(image_1) <- seq_len(ncol(image_1))
+image_1$y <- seq_len(nrow(image_1))
+image_1 <- gather(image_1, "x", "value", -y)
+image_1$x <- as.integer(image_1$x)
+
+ggplot(image_1, aes(x = x, y = y, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "black", na.value = NA) +
+  scale_y_reverse() +
+  theme_minimal() +
+  theme(panel.grid = element_blank())   +
+  theme(aspect.ratio = 1) +
+  xlab("") +
+  ylab("")
+#Converting grayscale into integer values
+train_images <- train_images / 255
+test_images <- test_images / 255
+#Visually examining the training set images
+par(mfcol=c(5,5))
+par(mar=c(0, 0, 1.5, 0), xaxs='i', yaxs='i')
+for (i in 1:25) { 
+  img <- train_images[i, , ]
+  img <- t(apply(img, 2, rev)) 
+  image(1:28, 1:28, img, col = gray((0:255)/255), xaxt = 'n', yaxt = 'n',
+        main = paste(class_names[train_labels[i] + 1]))
+}
+#Setting up the keras sequential model
+model <- keras_model_sequential()
+model %>%
+  layer_flatten(input_shape = c(28, 28)) %>%
+  layer_dense(units = 128, activation = 'relu') %>%
+  layer_dense(units = 10, activation = 'softmax')
+#Setting up the model's loss function and other metrics
+model %>% compile(
+  optimizer = 'adam', 
+  loss = 'sparse_categorical_crossentropy',
+  metrics = c('accuracy')
+)
+#training the model
+model %>% fit(train_images, train_labels, epochs = 10)
+#Evaluating and displaying model accuracy
+score <- model %>% evaluate(test_images, test_labels)
+
+cat('Test loss:', score$loss, "\n")
+cat('Test accuracy:', score$acc, "\n")
+#Making predictions on the test data
+predictions <- model %>% predict(test_images)
+#Looking at first prediction 
+predictions[1, ]
+#the label associated with the previous prediction (1-10 scale)
+which.max(predictions[1, ])
+#Another way to retrieve the first twenty predictions
+class_pred <- model %>% predict_classes(test_images)
+class_pred[1:20]
+#Retrieving first prediction label again (0-9) scale
+test_labels[1]
+#Plotting sample of first 25 predictions
+par(mfcol=c(5,5))
+par(mar=c(0, 0, 1.5, 0), xaxs='i', yaxs='i')
+for (i in 1:25) { 
+  img <- test_images[i, , ]
+  img <- t(apply(img, 2, rev)) 
+  # subtract 1 as labels go from 0 to 9
+  predicted_label <- which.max(predictions[i, ]) - 1
+  true_label <- test_labels[i]
+  if (predicted_label == true_label) {
+    color <- '#008800' 
+  } else {
+    color <- '#bb0000'
+  }
+  image(1:28, 1:28, img, col = gray((0:255)/255), xaxt = 'n', yaxt = 'n',
+        main = paste0(class_names[predicted_label + 1], " (",
+                      class_names[true_label + 1], ")"),
+        col.main = color)
+}
+#Making a single prediction
+img <- test_images[1, , , drop = FALSE]
+dim(img)
+predictions <- model %>% predict(img)
+predictions
+#Prediction label (1-10 scale)
+prediction <- predictions[1, ] - 1
+which.max(prediction)
+#Prediction label (0-9 scale)
+class_pred <- model %>% predict_classes(img)
+class_pred
+```
